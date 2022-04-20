@@ -1,51 +1,83 @@
+#include <fstream>
 #include <iostream>
+#include <stdlib.h>
 #include <string>
-#include <curl/curl.h>
-#define USER_AGENT "Mozilla/5.0 (X11; Linux x86_64) AppleWfdgebKit/537.36 (KHTML, like Gecko) Chrome/99 Safari/537.36"
-size_t WriteMemoryCallback(void *contents, size_t size, size_t nmemb, void *userp) {
-  size_t realsize = size * nmemb;
-  std::string* str=(std::string*)userp;
-  str->reserve(realsize);
-  auto c_str=(char*)contents;
-  for(size_t i=0;i<realsize;i++){
-    str->push_back(c_str[i]);
-  }
-  return realsize;
-}
-int main(int argc, char *argv[]) {
-  if( argc != 2 ) {
-    printf("usage: try './curl [url]' to make a get request.\n");
-    return 1;
-  }
-
-  CURL *curl_handle;
-  CURLcode res;
-
-  std::string chunk;
-
-  curl_handle = curl_easy_init();
-  if(curl_handle) {
-    curl_easy_setopt(curl_handle, CURLOPT_URL, argv[1]);
-    curl_easy_setopt(curl_handle, CURLOPT_FOLLOWLOCATION, 1L);
-    curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, WriteMemoryCallback);
-    curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, (void *)&chunk);
-    curl_easy_setopt(curl_handle, CURLOPT_USERAGENT, USER_AGENT);
-
-    res = curl_easy_perform(curl_handle);
-
-    if(res != CURLE_OK) {
-      fprintf(stderr, "error: %s\n", curl_easy_strerror(res));
-    } else {
-      // printf("Size: %lu\n", (unsigned long)chunk.size);
-      // printf("Data: %s\n", chunk.memory);
-      // std::cout<<chunk;
+#include <unordered_set>
+#include "gumbo.h"
+struct Data{
+    std::string content;
+    std::unordered_set<std::string> url;
+};
+__attribute__((always_inline)) inline std::string full_url(std::string original,std::string part){
+    if(part.size()>8){
+        if(part.substr(0,8)=="https://"){}
     }
-    curl_easy_cleanup(curl_handle);
+    return part;
+}
+static Data get_url_text(GumboNode *node) {
+    if (node->type == GUMBO_NODE_TEXT) {
+        return {
+          std::string(node->v.text.text),
+          {""}
+        };
+    }
+    else if (node->v.element.tag == GUMBO_TAG_A){
+      return {
+        "",
+        {gumbo_get_attribute(&node->v.element.attributes, "href")->value}
+      };
+    }
+    else if (node->type == GUMBO_NODE_ELEMENT &&
+              node->v.element.tag != GUMBO_TAG_SCRIPT &&
+              node->v.element.tag != GUMBO_TAG_STYLE) {
+        Data contents;
+        GumboVector *children = &node->v.element.children;
+        for (unsigned int i = 0; i < children->length; ++i) {
+          const Data text = get_url_text((GumboNode *)children->data[i]);
+          if(text.url.size()==0&&text.content.empty()){
+            contents.content.append(" ");
+          }
+          else if(text.url.size()>0){
+            for(auto& i:text.url){
+              if(!i.empty()){
+                contents.url.insert(i);
+              }
+            }
+          }
+          contents.content.append(text.content);
+          // if (i != 0 && !text.empty()) {
+          //   contents.append(" ");
+          // }
+          // contents.append(text);
+        }
+      return contents;
+    } 
+    else {
+      return Data{};
+    }
+}
 
-  }
-  else{
-    std::cout<<"Error: Couldn't create a curl instance";
-    exit(1);
-  }
-  return 0;
+int main(int argc, char **argv) {
+    const char *filename = "test.html";
+    
+    std::ifstream in(filename, std::ios::in | std::ios::binary);
+    if (!in) {
+      std::cout << "File " << filename << " not found!\n";
+      exit(EXIT_FAILURE);
+    }
+
+    std::string contents;
+    in.seekg(0, std::ios::end);
+    contents.resize(in.tellg());
+    in.seekg(0, std::ios::beg);
+    in.read(&contents[0], contents.size());
+    in.close();
+
+    GumboOutput *output = gumbo_parse(contents.c_str());
+    auto x=get_url_text(output->root);
+    std::cout << x.content << std::endl;
+    for(auto& i:x.url){
+      std::cout<<i<<std::endl;
+    }
+    gumbo_destroy_output(&kGumboDefaultOptions, output);
 }
