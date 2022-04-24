@@ -1,8 +1,13 @@
 #include <iostream>
+#include <pthread.h>
+#include <thread>
 #include <string>
 #include "../include/crawler/html.hpp"
+
 #define USER_AGENT "Mozilla/5.0 (X11; Linux x86_64) AppleWfdgebKit/537.36 (KHTML, like Gecko) Chrome/99 Safari/537.36"
+
 namespace Amber{
+
 size_t WriteMemoryCallback(void *contents, size_t size, size_t nmemb, void *userp) {
     size_t realsize = size * nmemb;
     std::string* str=(std::string*)userp;
@@ -13,6 +18,14 @@ size_t WriteMemoryCallback(void *contents, size_t size, size_t nmemb, void *user
     }
     return realsize;
 }
+
+void _get_html(HTML* html,std::vector<std::string>* content,std::string* url){
+    auto x=html->get_html(*url);
+    if(x!=""){
+        content->emplace_back(x);
+    }
+}
+
 std::string HTML::get_html(std::string url) {
     std::string chunk;
     CURL *curl_handle=curl_easy_init();
@@ -35,33 +48,44 @@ std::string HTML::get_html(std::string url) {
     }
     else{
         std::cout<<"Error: Couldn't create a curl instance"<<std::endl;
-        exit(1);
+        return chunk;
     }
     return chunk;
 }
+std::vector<std::string> HTML::get_html(std::vector<std::string> urls) {
+    std::vector<std::string> res;
+    res.reserve(urls.size());
+    std::vector<std::thread> threads; 
+    threads.reserve(urls.size());
+    for(size_t i=0;i<urls.size();++i){
+        threads.emplace_back(std::thread(_get_html,this,&res,&urls[i]));
+    }
+    for(auto& x:threads){
+        x.join();
+    }
+    return res;
 }
-/*
+}
+///*
 using namespace Amber;
 #include <chrono>
 using namespace std::chrono;
-#include <thread>
-void get_html(HTML* html,std::string* content,std::string url){
-    *content=html->get_html(url);
-}
+
 int main() {
     auto x=HTML();
-    // std::cout<<x.get_html("http://127.0.0.1:5500/test.html")<<"\n";
-    // std::cout<<x.get_html("http://127.0.0.1:5500/test2.html")<<"\n";
-    std::string content1;
-    std::string content2;
-    std::string content3;
+    std::vector<std::string> visit;
+    for (size_t i=0; i<1000;++i) {
+        visit.push_back("https://www.google.com/");
+    }
     auto start = high_resolution_clock::now();
-    std::thread thread_obj1(get_html,&x,&content1,"google.com");
-    std::thread thread_obj2(get_html,&x,&content2,"facebook.com");
-    std::thread thread_obj3(get_html,&x,&content3,"wikipedia.com");
-    thread_obj1.join();
-    thread_obj2.join();
-    thread_obj3.join();
+    auto content=x.get_html(visit);
+                            // {
+                            // "google.com","facebook.com","wikipedia.com",
+                            // "https://www.visard.org","https://github.com/","https://github.com/notti/nocgo",
+                            // "https://github.com/apachejuice/pretzel","https://github.com/ryaangu/poth",
+                            // "https://github.com/peregrine-lang/Peregrine","https://godbolt.org/",
+                            // "https://pypi.org/"}
+                            // );
     auto end = high_resolution_clock::now();
     std::cout<<"Time taken to get html content in parallel is "<<duration_cast<milliseconds>(end -
                                                          start).count()<<"ms\n";
@@ -71,9 +95,7 @@ int main() {
     x.get_html("wikipedia.com");
     end = high_resolution_clock::now();  
     std::cout<<"Time taken to get html content in sequence is "<<duration_cast<milliseconds>(end -
-                                                         start).count()<<"ms\n";                                             
-    // std::cout<<content1<<"\n";
-    // std::cout<<content2<<"\n";
-    // std::cout<<content3<<"\n";
+                                                         start).count()<<"ms\n";        
+    std::cout<<content.size()<<std::endl;
 }
-*/
+//*/

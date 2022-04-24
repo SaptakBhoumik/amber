@@ -5,26 +5,33 @@
 #include <unordered_set>
 #include "gumbo.h"
 struct Data{
-    std::string content;
-    std::unordered_set<std::string> url;
+    std::string content="";
+    std::string title="";
+    std::unordered_set<std::string> url={};
 };
 __attribute__((always_inline)) inline std::string full_url(std::string original,std::string part){
-    if(part.size()>8){
-        if(part.substr(0,8)=="https://"){}
-    }
+    
     return part;
 }
 static Data get_url_text(GumboNode *node) {
     if (node->type == GUMBO_NODE_TEXT) {
         return {
-          std::string(node->v.text.text),
-          {""}
+          .content=std::string(node->v.text.text),
+          .url={""}
         };
     }
     else if (node->v.element.tag == GUMBO_TAG_A){
       return {
-        "",
-        {gumbo_get_attribute(&node->v.element.attributes, "href")->value}
+        .content="",
+        .url={gumbo_get_attribute(&node->v.element.attributes, "href")->value}
+      };
+    }
+    else if (node->v.element.tag == GUMBO_TAG_TITLE){ 
+      std::cout<<"hello\n"<<std::endl  ;
+      return {
+        .content="",
+        .title=node->v.text.text,
+        .url={}
       };
     }
     else if (node->type == GUMBO_NODE_ELEMENT &&
@@ -45,10 +52,9 @@ static Data get_url_text(GumboNode *node) {
             }
           }
           contents.content.append(text.content);
-          // if (i != 0 && !text.empty()) {
-          //   contents.append(" ");
-          // }
-          // contents.append(text);
+          if(text.title.size()>0){
+            contents.title=text.title;
+          }
         }
       return contents;
     } 
@@ -77,7 +83,8 @@ int main(int argc, char **argv) {
     auto x=get_url_text(output->root);
     std::cout << x.content << std::endl;
     for(auto& i:x.url){
-      std::cout<<i<<std::endl;
+      std::cout<<"URL = "<<i<<std::endl;
     }
+    std::cout<<"Title = "<<x.title<<std::endl;
     gumbo_destroy_output(&kGumboDefaultOptions, output);
 }
