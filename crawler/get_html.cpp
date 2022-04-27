@@ -2,31 +2,43 @@
 #include <pthread.h>
 #include <thread>
 #include <string>
+#include <ctime>
 #include "../include/crawler/html.hpp"
 
 #define USER_AGENT "Mozilla/5.0 (X11; Linux x86_64) AppleWfdgebKit/537.36 (KHTML, like Gecko) Chrome/99 Safari/537.36"
 
 namespace Amber{
+int mssleep(long miliseconds)
+{
+   struct timespec rem;
+   struct timespec req= {
+       (int)(miliseconds / 1000),     /* secs (Must be Non-Negative) */ 
+       (miliseconds % 1000) * 1000000 /* nano (Must be in range of 0 to 999999999) */ 
+   };
 
+   return nanosleep(&req , &rem);
+}
 size_t WriteMemoryCallback(void *contents, size_t size, size_t nmemb, void *userp) {
     size_t realsize = size * nmemb;
-    std::string* str=(std::string*)userp;
-    str->reserve(realsize);
-    auto c_str=(char*)contents;
-    for(size_t i=0;i<realsize;i++){
-        str->push_back(c_str[i]);
+    if(contents!=NULL||userp!=NULL){
+        std::string* str=(std::string*)userp;
+        str->reserve(realsize);
+        auto c_str=(char*)contents;
+        for(size_t i=0;i<realsize;i++){
+            str->push_back(c_str[i]);
+        }
     }
     return realsize;
 }
 
-void _get_html(HTML* html,std::vector<std::string>* content,std::string* url){
+void _get_html(HTML* html,std::vector<HTML_CODE>* content,std::string* url){
     auto x=html->get_html(*url);
-    if(x!=""){
+    if(x.content!=""){
         content->emplace_back(x);
     }
 }
 
-std::string HTML::get_html(std::string url) {
+HTML_CODE HTML::get_html(std::string url) {
     std::string chunk;
     CURL *curl_handle=curl_easy_init();
     CURLcode res;
@@ -42,23 +54,24 @@ std::string HTML::get_html(std::string url) {
         if(res != CURLE_OK) {
             std::cout<<"Can't get html content from "<<url<<"\n";
             fprintf(stderr, "error: %s\n", curl_easy_strerror(res));
-            return "";
+            return {"",""};
         }
         curl_easy_cleanup(curl_handle);
     }
     else{
         std::cout<<"Error: Couldn't create a curl instance"<<std::endl;
-        return chunk;
+        return {"",""};
     }
-    return chunk;
+    return {.url=url,.content=chunk};
 }
-std::vector<std::string> HTML::get_html(std::vector<std::string> urls) {
-    std::vector<std::string> res;
+std::vector<HTML_CODE> HTML::get_html(std::vector<std::string> urls) {
+    std::vector<HTML_CODE> res;
     res.reserve(urls.size());
     std::vector<std::thread> threads; 
     threads.reserve(urls.size());
     for(size_t i=0;i<urls.size();++i){
         threads.emplace_back(std::thread(_get_html,this,&res,&urls[i]));
+        mssleep(15);//needed so that the dns can handle it
     }
     for(auto& x:threads){
         x.join();

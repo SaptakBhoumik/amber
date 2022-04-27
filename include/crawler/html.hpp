@@ -4,11 +4,15 @@
 #include <string>
 #include <vector>
 namespace Amber{
+struct HTML_CODE{
+    std::string url;
+    std::string content;
+};
 class HTML{
     public:
     HTML()=default;
-    std::string get_html(std::string);
-    std::vector<std::string> get_html(std::vector<std::string>);
+    HTML_CODE get_html(std::string);
+    std::vector<HTML_CODE> get_html(std::vector<std::string>);
 };
 }
 #endif
