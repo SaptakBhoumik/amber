@@ -16,7 +16,11 @@ void Crawler::start(){
     auto data=m_html.get_data(m_urls,max_num_item-m_result.size());
     //TODO: take new input from user
     if (data.size()==0) {
-        std::cout<<"No more data to crawl\n";
+        std::cout<<"No more data to crawl. Enter a new url to crawl:- ";
+        m_urls.clear();
+        std::cin>>m_url;
+        m_urls.push_back(std::string(m_url));
+        goto reset;
         return;
     }
     m_urls.clear();

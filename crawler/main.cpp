@@ -29,7 +29,7 @@ int main() {
     // for(auto& x:content[0].images){
     //     std::cout<<x.first<<" = "<<x.second<<std::endl;
     // }
-    auto x=Crawler("https://github.com",{});
+    auto x=Crawler("http://127.0.0.1:5500/test.html",{});
     x.start();
     auto content=x.get_data();
     std::cout<<"No. of crawled url = " << content.size()<<std::endl;
