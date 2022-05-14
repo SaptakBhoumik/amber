@@ -1,14 +1,10 @@
 #include <iostream>
-#include <pthread.h>
 #include <thread>
 #include <string>
 #include <ctime>
 #include "../include/crawler/html.hpp"
-
-#define USER_AGENT "Mozilla/5.0 (X11; Linux x86_64) AppleWfdgebKit/537.36 (KHTML, like Gecko) Chrome/99 Safari/537.36"
-
 namespace Amber{
-int mssleep(long miliseconds)
+int HTML::mssleep(long miliseconds)
 {
    struct timespec rem;
    struct timespec req= {
@@ -18,24 +14,33 @@ int mssleep(long miliseconds)
 
    return nanosleep(&req , &rem);
 }
-size_t WriteMemoryCallback(void *contents, size_t size, size_t nmemb, void *userp) {
+void HTML::_get_html(HTML* html,std::vector<Data>* content,std::string* url){
+    auto x=html->get_html(*url);
+    std::cout<<"Crawling: "<<*url<<std::endl;
+    if(x.content!=""){
+        GumboOutput *output = gumbo_parse(x.content.c_str());
+        if(output!=NULL){
+            auto _res=html->get_data(output->root,x.url);
+            _res.original_url=x.url;
+            content->emplace_back(_res);
+            gumbo_destroy_output(&kGumboDefaultOptions, output);
+        }
+    }
+}
+
+size_t HTML::WriteMemoryCallback(void *contents, size_t size, size_t nmemb, void *userp) {
     size_t realsize = size * nmemb;
     if(contents!=NULL||userp!=NULL){
         std::string* str=(std::string*)userp;
         str->reserve(realsize);
         auto c_str=(char*)contents;
-        for(size_t i=0;i<realsize;i++){
-            str->push_back(c_str[i]);
+        if(c_str!=NULL){
+            for(size_t i=0;i<realsize;i++){
+                str->push_back(c_str[i]);
+            }
         }
     }
     return realsize;
-}
-
-void _get_html(HTML* html,std::vector<HTML_CODE>* content,std::string* url){
-    auto x=html->get_html(*url);
-    if(x.content!=""){
-        content->emplace_back(x);
-    }
 }
 
 HTML_CODE HTML::get_html(std::string url) {
@@ -56,6 +61,15 @@ HTML_CODE HTML::get_html(std::string url) {
             fprintf(stderr, "error: %s\n", curl_easy_strerror(res));
             return {"",""};
         }
+        {
+            char* ct=NULL;
+            res = curl_easy_getinfo(curl_handle, CURLINFO_CONTENT_TYPE, &ct);
+            if(!res && ct) {
+                if(std::string(ct).find("text/html") == std::string::npos){
+                    return {};
+                }
+            }
+        }
         curl_easy_cleanup(curl_handle);
     }
     else{
@@ -64,51 +78,166 @@ HTML_CODE HTML::get_html(std::string url) {
     }
     return {.url=url,.content=chunk};
 }
-std::vector<HTML_CODE> HTML::get_html(std::vector<std::string> urls) {
-    std::vector<HTML_CODE> res;
+std::vector<Data> HTML::get_data(std::vector<std::string> urls,size_t num) {
+    std::vector<Data> res;
     res.reserve(urls.size());
     std::vector<std::thread> threads; 
     threads.reserve(urls.size());
     for(size_t i=0;i<urls.size();++i){
         threads.emplace_back(std::thread(_get_html,this,&res,&urls[i]));
-        mssleep(15);//needed so that the dns can handle it
+        mssleep(sleep_time_ms);//needed so that the dns can handle 
+        num--;
+        if(num<=0){
+            break;
+        }
     }
     for(auto& x:threads){
         x.join();
     }
+    threads.clear();
     return res;
 }
-}
-///*
-using namespace Amber;
-#include <chrono>
-using namespace std::chrono;
 
-int main() {
-    auto x=HTML();
-    std::vector<std::string> visit;
-    for (size_t i=0; i<1000;++i) {
-        visit.push_back("https://www.google.com/");
+Data HTML::get_data(GumboNode* node,std::string original_url){
+    if (node->type == GUMBO_NODE_TEXT) {
+        Data contents;
+        contents.content=std::string(node->v.text.text);
+        return contents;
+    } 
+    else if(node->v.element.tag==GUMBO_TAG_BR){
+        return {.content="\n"};; 
     }
-    auto start = high_resolution_clock::now();
-    auto content=x.get_html(visit);
-                            // {
-                            // "google.com","facebook.com","wikipedia.com",
-                            // "https://www.visard.org","https://github.com/","https://github.com/notti/nocgo",
-                            // "https://github.com/apachejuice/pretzel","https://github.com/ryaangu/poth",
-                            // "https://github.com/peregrine-lang/Peregrine","https://godbolt.org/",
-                            // "https://pypi.org/"}
-                            // );
-    auto end = high_resolution_clock::now();
-    std::cout<<"Time taken to get html content in parallel is "<<duration_cast<milliseconds>(end -
-                                                         start).count()<<"ms\n";
-    start = high_resolution_clock::now();
-    x.get_html("google.com");
-    x.get_html("facebook.com");
-    x.get_html("wikipedia.com");
-    end = high_resolution_clock::now();  
-    std::cout<<"Time taken to get html content in sequence is "<<duration_cast<milliseconds>(end -
-                                                         start).count()<<"ms\n";        
-    std::cout<<content.size()<<std::endl;
+    else if (node->v.element.tag == GUMBO_TAG_A) {
+        // std::cout<<original_url<<" "<<node->v.element.attributes.length<<std::endl;
+        GumboVector *children = &node->v.element.children;
+        Data contents;
+        if(node->v.element.attributes.length>10||node->v.element.attributes.length==0){
+            return contents;
+        }
+        auto attr=node->v.element.attributes;
+        GumboAttribute* x=
+        gumbo_get_attribute(&attr, "href");
+        std::string url;
+        if(x==NULL){
+            url="";
+        }
+        else{
+            url=full_url(original_url,x->value);
+        }
+        for (unsigned int i = 0; i < children->length; ++i) {
+            const Data text = get_data((GumboNode *)children->data[i],original_url);
+            if (text.url.size() > 0) {
+                for (auto &i : text.url) {
+                    if (!i.empty()) {
+                        contents.url.insert(i);
+                    }
+                }
+            }
+            if (text.images.size() > 0) {
+                for (auto &i : text.images) {
+                    if (!i.first.empty()) {
+                        if(i.first==url){
+                            url="";
+                        }
+                        contents.images.insert(i);
+                    }
+                }
+            }
+        }
+        if(!url.empty()){
+            contents.url.insert(url);
+        }
+        return contents;
+    }
+    else if ( node->v.element.tag==GUMBO_TAG_IMG ){
+        Data contents;
+        auto x=gumbo_get_attribute(&node->v.element.attributes, "src");
+        std::string url;
+        if(x!=NULL){
+            url=full_url(original_url,x->value);
+        }
+
+        auto y=gumbo_get_attribute(&node->v.element.attributes, "alt");
+        std::string alt;
+        if(y!=NULL){
+            alt=y->value;
+        }
+        contents.images[url]=alt;
+        return contents;
+    } 
+    else if (node->type == GUMBO_NODE_ELEMENT &&
+               node->v.element.tag != GUMBO_TAG_SCRIPT &&
+               node->v.element.tag != GUMBO_TAG_STYLE &&
+               node->v.element.tag!=GUMBO_TAG_NOSCRIPT &&
+               node->v.element.tag!=GUMBO_TAG_IFRAME &&
+               node->v.element.tag!=GUMBO_TAG_EMBED &&
+               node->v.element.tag!=GUMBO_TAG_OBJECT &&
+               node->v.element.tag!=GUMBO_TAG_VIDEO &&
+               node->v.element.tag!=GUMBO_TAG_AUDIO &&
+               node->v.element.tag!=GUMBO_TAG_SOURCE && 
+               node->v.element.tag!=GUMBO_TAG_TRACK && 
+               node->v.element.tag!=GUMBO_TAG_SOURCE
+               ) {
+        Data contents;
+        GumboVector *children = &node->v.element.children;
+        for (unsigned int i = 0; i < children->length; ++i) {
+            const Data text = get_data((GumboNode *)children->data[i],original_url);
+            if (text.url.size() > 0) {
+                for (auto &i : text.url) {
+                    if (!i.empty()) {
+                        contents.url.insert(i);
+                    }
+                }
+            }
+            if (text.images.size() > 0) {
+                for (auto &i : text.images) {
+                    if (!i.first.empty()) {
+                        contents.images.insert(i);
+                    }
+                }
+            }
+            if (node->v.element.tag == GUMBO_TAG_TITLE) {
+                contents.title.append(text.content);
+            } 
+            else {
+                contents.title.append(text.title);
+                contents.content.append(text.content);
+            }
+        }
+        return contents;
+    } 
+    else {
+        return Data{};
+    }
 }
-//*/
+std::string HTML::full_url(std::string original,std::string part) {
+    if(part.find('#') != std::string::npos ||  // location to a div element
+        part.find('?') != std::string::npos || // just a quary
+        part.find('@') != std::string::npos || // email
+        part.find('%') != std::string::npos || // TODO: This types of url are causing problems
+        part=="/"||part==original){
+        return "";
+    }
+    else if(part[0]=='/' && part[1]=='/'){
+        return "http:"+part;
+    }
+    else if(part[0]=='/'){
+        if(original[original.size()-1]=='/'){
+            return original.substr(0, original.size()-1)+part;
+        }
+        return original+part;
+    }
+    else if(part.find("https://") != std::string::npos || 
+        part.find("http://") != std::string::npos){
+        return part;
+    }
+
+    else{
+        if(original[original.size()-1]=='/'){
+            return original+part;
+        }
+        return original+"/"+part;
+    }
+}
+}
+
