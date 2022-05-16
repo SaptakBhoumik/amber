@@ -1,8 +1,10 @@
 #include <iostream>
 #include <thread>
 #include <string>
+#include <string.h>
 #include <ctime>
 #include "../include/crawler/html.hpp"
+
 namespace Amber{
 int HTML::mssleep(long miliseconds)
 {
@@ -22,7 +24,7 @@ void HTML::_get_html(HTML* html,std::vector<Data>* content,std::string* url){
         if(output!=NULL){
             auto _res=html->get_data(output->root,x.url);
             _res.original_url=x.url;
-            content->emplace_back(_res);
+            content->push_back(_res);
             gumbo_destroy_output(&kGumboDefaultOptions, output);
         }
     }
@@ -49,11 +51,11 @@ HTML_CODE HTML::get_html(std::string url) {
     CURLcode res;
     if(curl_handle) {
         curl_easy_setopt(curl_handle, CURLOPT_URL, url.c_str());
-        curl_easy_setopt(curl_handle, CURLOPT_FOLLOWLOCATION, 1L);
+        curl_easy_setopt(curl_handle, CURLOPT_FOLLOWLOCATION, 0);
         curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, WriteMemoryCallback);
         curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, (void *)&chunk);
         curl_easy_setopt(curl_handle, CURLOPT_USERAGENT, USER_AGENT);
-
+        curl_easy_setopt(curl_handle, CURLOPT_TIMEOUT, 5);
         res = curl_easy_perform(curl_handle);
 
         if(res != CURLE_OK) {
@@ -82,7 +84,6 @@ std::vector<Data> HTML::get_data(std::vector<std::string> urls,size_t num) {
     std::vector<Data> res;
     res.reserve(urls.size());
     std::vector<std::thread> threads; 
-    threads.reserve(urls.size());
     for(size_t i=0;i<urls.size();++i){
         threads.emplace_back(std::thread(_get_html,this,&res,&urls[i]));
         mssleep(sleep_time_ms);//needed so that the dns can handle 
@@ -99,6 +100,9 @@ std::vector<Data> HTML::get_data(std::vector<std::string> urls,size_t num) {
 }
 
 Data HTML::get_data(GumboNode* node,std::string original_url){
+    if(node==NULL){
+        return {};
+    }
     if (node->type == GUMBO_NODE_TEXT) {
         Data contents;
         contents.content=std::string(node->v.text.text);
@@ -115,8 +119,10 @@ Data HTML::get_data(GumboNode* node,std::string original_url){
             return contents;
         }
         auto attr=node->v.element.attributes;
-        GumboAttribute* x=
-        gumbo_get_attribute(&attr, "href");
+        if(gumbo_get_attribute(&attr, "download")!=NULL){
+            return contents;
+        }
+        GumboAttribute* x=gumbo_get_attribute(&attr, "href");
         std::string url;
         if(x==NULL){
             url="";
@@ -151,6 +157,10 @@ Data HTML::get_data(GumboNode* node,std::string original_url){
     }
     else if ( node->v.element.tag==GUMBO_TAG_IMG ){
         Data contents;
+        //Bug in the gumbo library. So it cant be more than 3 attributes
+        if(node->v.element.attributes.length>3||node->v.element.attributes.length==0){
+            return contents;
+        }
         auto x=gumbo_get_attribute(&node->v.element.attributes, "src");
         std::string url;
         if(x!=NULL){

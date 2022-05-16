@@ -13,6 +13,8 @@ class Crawler{
     Crawler(std::string,std::unordered_map<std::string,uint64_t>);
     void start();
     std::unordered_map<std::string,Data> get_data();
+    std::unordered_map<std::string,uint64_t> get_referance();
+    std::vector<std::string> get_urls();
 };
 }
 #endif

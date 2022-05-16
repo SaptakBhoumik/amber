@@ -13,9 +13,9 @@ struct HTML_CODE{
     std::string content;
 };
 struct Data {
-    std::string original_url = "";
-    std::string content = "";
     std::string title = "";
+    std::string content = "";
+    std::string original_url = "";
     std::unordered_set<std::string> url = {};
     //url,alt
     std::unordered_map<std::string,std::string> images;

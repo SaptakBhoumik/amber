@@ -36,11 +36,17 @@ void Crawler::start(){
             }
         }
     }
-    if(m_result.size()<max_num_item){
+    if(m_result.size()<=max_num_item){
         goto reset;
     }
 }
 std::unordered_map<std::string,Data> Crawler::get_data(){
     return m_result;
+}
+std::unordered_map<std::string,uint64_t> Crawler::get_referance(){
+    return m_referance;
+}
+std::vector <std::string> Crawler::get_urls(){
+    return m_urls;
 }
 }
