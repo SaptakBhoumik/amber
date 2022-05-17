@@ -4,8 +4,69 @@
 #include <string.h>
 #include <ctime>
 #include "../include/crawler/html.hpp"
+#include <uriparser/Uri.h>
 
 namespace Amber{
+std::string compress(std::string& content){
+    std::string compressed;
+    for (auto& c:content){
+        if (c==' '||c=='\n'||c=='\t'){
+            if(compressed.size()>0){
+                if(compressed.back()!=' '){
+                    compressed+=" ";
+                }
+            }
+        }
+        else{
+            compressed+=c;
+        }
+    }
+    return compressed;
+}
+std::string urljoin(std::string &base, std::string &relative)
+{
+    UriParserStateA state;
+    UriUriA uriOne;
+    UriUriA uriTwo;
+
+    state.uri = &uriOne;
+
+    if (uriParseUriA(&state, base.c_str()) != URI_SUCCESS)
+    {
+        return "";
+    }
+    state.uri = &uriTwo;
+    if (uriParseUriA(&state, relative.c_str()) != URI_SUCCESS)
+    {
+        uriFreeUriMembersA(&uriTwo);
+        return "";
+    }
+
+    UriUriA result;
+    if (uriAddBaseUriA(&result, &uriTwo, &uriOne) != URI_SUCCESS)
+    {
+        uriFreeUriMembersA(&result);
+        return "";
+    }
+    uriFreeUriMembersA(&uriOne);
+    uriFreeUriMembersA(&uriTwo);
+
+    int charsRequired;
+    uriToStringCharsRequiredA(&result, &charsRequired);
+    charsRequired++;
+
+    char *buf = (char*) malloc(charsRequired * sizeof(char)); if (uriToStringA(buf, &result, charsRequired, NULL) != URI_SUCCESS)
+        return "";
+    uriFreeUriMembersA(&result);
+
+    std::string ret(buf);
+    free(buf);
+
+    return ret;
+}
+
+
+
 int HTML::mssleep(long miliseconds)
 {
    struct timespec rem;
@@ -23,7 +84,9 @@ void HTML::_get_html(HTML* html,std::vector<Data>* content,std::string* url){
         GumboOutput *output = gumbo_parse(x.content.c_str());
         if(output!=NULL){
             auto _res=html->get_data(output->root,x.url);
-            _res.original_url=x.url;
+            _res.title=compress(_res.title);
+            _res.content=compress(_res.content);
+            _res.original_url=*url;
             content->push_back(_res);
             gumbo_destroy_output(&kGumboDefaultOptions, output);
         }
@@ -57,6 +120,12 @@ HTML_CODE HTML::get_html(std::string url) {
         curl_easy_setopt(curl_handle, CURLOPT_USERAGENT, USER_AGENT);
         curl_easy_setopt(curl_handle, CURLOPT_TIMEOUT, 5);
         res = curl_easy_perform(curl_handle);
+        long http_code = 0;
+        curl_easy_getinfo (curl_handle, CURLINFO_RESPONSE_CODE, &http_code);
+        if (http_code == 404){
+            std::cout<<"Error getting "<<url<<std::endl;
+            return HTML_CODE{"",""};
+        }
 
         if(res != CURLE_OK) {
             std::cout<<"Can't get html content from "<<url<<"\n";
@@ -80,7 +149,7 @@ HTML_CODE HTML::get_html(std::string url) {
     }
     return {.url=url,.content=chunk};
 }
-std::vector<Data> HTML::get_data(std::vector<std::string> urls,size_t num) {
+std::vector<Data> HTML::get_data(std::vector<std::string> urls,long num) {
     std::vector<Data> res;
     res.reserve(urls.size());
     std::vector<std::thread> threads; 
@@ -115,7 +184,7 @@ Data HTML::get_data(GumboNode* node,std::string original_url){
         // std::cout<<original_url<<" "<<node->v.element.attributes.length<<std::endl;
         GumboVector *children = &node->v.element.children;
         Data contents;
-        if(node->v.element.attributes.length>10||node->v.element.attributes.length==0){
+        if(node->v.element.attributes.length>=3||node->v.element.attributes.length==0){
             return contents;
         }
         auto attr=node->v.element.attributes;
@@ -224,30 +293,23 @@ std::string HTML::full_url(std::string original,std::string part) {
     if(part.find('#') != std::string::npos ||  // location to a div element
         part.find('?') != std::string::npos || // just a quary
         part.find('@') != std::string::npos || // email
-        part.find('%') != std::string::npos || // TODO: This types of url are causing problems
+        part.find('$') != std::string::npos ||
+        part.find('+') != std::string::npos || 
+        part.find(';') != std::string::npos || 
         part=="/"||part==original){
         return "";
-    }
-    else if(part[0]=='/' && part[1]=='/'){
-        return "http:"+part;
-    }
-    else if(part[0]=='/'){
-        if(original[original.size()-1]=='/'){
-            return original.substr(0, original.size()-1)+part;
-        }
-        return original+part;
     }
     else if(part.find("https://") != std::string::npos || 
         part.find("http://") != std::string::npos){
         return part;
     }
-
-    else{
-        if(original[original.size()-1]=='/'){
-            return original+part;
-        }
-        return original+"/"+part;
+    else if (part.find(':')!=std::string::npos){
+        return "";
     }
+    else if(part[0]=='/' && part[1]=='/'){
+        return "http:"+part;
+    }
+    return urljoin(original,part); 
 }
 }
 

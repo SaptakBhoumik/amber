@@ -23,7 +23,7 @@ struct Data {
 class HTML{
     public:
     HTML()=default;
-    std::vector<Data> get_data(std::vector<std::string>,size_t);//number of results
+    std::vector<Data> get_data(std::vector<std::string>,long);//number of results
     private:
     HTML_CODE get_html(std::string);
     int mssleep(long miliseconds);

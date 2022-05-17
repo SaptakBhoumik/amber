@@ -17,7 +17,7 @@ int main(int argc, char const *argv[]) {
     R.rlim_cur = R.rlim_max;
     setrlimit(RLIMIT_STACK, &R);
     struct stat info;
-    std::string url;
+    std::vector<std::string> url;
     std::string dataset;
     std::unordered_map<std::string,uint64_t> referance;
     if(argc!=2){
@@ -26,6 +26,16 @@ int main(int argc, char const *argv[]) {
     }
     else{
         dataset=argv[1];
+    }
+    bool has_new_url=false;
+    if(dataset=="-url"){
+            std::cout<<"Enter the filepath to the dataset folder:- ";
+            std::cin>>dataset;
+            std::cout<<"\nEnter the url:- ";
+            std::string _url;
+            std::cin>>_url;
+            url.push_back(_url);
+            has_new_url=true;
     }
     if(stat(dataset.c_str(), &info) != 0 ){
         std::cout<<"The filepath is invalid.\n";
@@ -41,17 +51,23 @@ int main(int argc, char const *argv[]) {
     }
     if(total_file==0){
         std::cout<<"The dataset folder is empty. Please enter a url to start crawling from:- ";
-        std::cin>>url;
+        std::string _url;
+        std::cin>>_url;
+        url.push_back(_url);
     }
     else{
-        CacheUrl cachedb(dataset+cache_url_file);
-        auto cache=cachedb.read();
-        if(cache.size()==0){
-            std::cout<<"The cache is empty. Please enter a url to start crawling from:- ";
-            std::cin>>url;
-        }
-        else{
-            url=cache.back();
+        if(!has_new_url){
+            CacheUrl cachedb(dataset+cache_url_file);
+            auto cache=cachedb.read();
+            if(cache.size()==0){
+                std::cout<<"The cache is empty. Please enter a url to start crawling from:- ";
+                std::string _url;
+                std::cin>>_url;
+                url.push_back(_url);
+            }
+            else{
+                url=cache;
+            }
         }
         ReferenceDB rdb(dataset+referance_file);
         referance=rdb.read();
@@ -65,5 +81,6 @@ int main(int argc, char const *argv[]) {
     ReferenceDB refdb(dataset+referance_file);
     refdb.write(crawl.get_referance());
     CacheUrl cachedb(dataset+cache_url_file);
+    std::cout<<"Number of url in cache = " << crawl.get_urls().size()<<std::endl;
     cachedb.write(crawl.get_urls());
 }
