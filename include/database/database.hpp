@@ -6,6 +6,10 @@
 #include <fstream>
 #include "../crawler/html.hpp"
 namespace Amber{
+enum Mode{
+    Normal,
+    Search
+};
 class ReferenceDB{
     std::string m_filename;
     public:
@@ -18,7 +22,7 @@ class DataDB{
     public:
     DataDB(std::string);
     void write(std::unordered_map<std::string,Data>);
-    std::unordered_map<std::string,Data> read();
+    std::unordered_map<std::string,Data> read(Mode m=Normal);
 };
 class CacheUrl{
     std::string m_filename;

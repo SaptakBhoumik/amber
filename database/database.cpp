@@ -90,7 +90,7 @@ void DataDB::write(std::unordered_map<std::string,Data> data){
         }
     }
 }
-std::unordered_map<std::string,Data> DataDB::read(){
+std::unordered_map<std::string,Data> DataDB::read(Mode m){
     std::unordered_map<std::string,Data> res;
     std::ifstream file(m_filename);
     if(!file){
@@ -135,7 +135,9 @@ std::unordered_map<std::string,Data> DataDB::read(){
             char link[link_size+1];
             file.read(link,link_size);
             link[link_size]='\0';
-            data.url.insert(link);
+            if(m==Normal){
+                data.url.insert(link);
+            }
         }
 
         size_t image_size;
@@ -156,6 +158,7 @@ std::unordered_map<std::string,Data> DataDB::read(){
             image_alt[image_alt_size]='\0';
             data.images[image_url]=image_alt;
         }
+        res[data.original_url]=data;
     }
     return res;
 }
