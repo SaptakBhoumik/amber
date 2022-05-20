@@ -1,5 +1,6 @@
 #include "../include/database/database.hpp"
 #include <cstdint>
+#include "../include/compress/compress.hpp"
 #include <iostream>
 namespace Amber{
 ReferenceDB::ReferenceDB(std::string filename){
@@ -91,10 +92,11 @@ void DataDB::write(std::unordered_map<std::string,Data> data){
     }
 }
 std::unordered_map<std::string,Data> DataDB::read(Mode m){
+    //I wont compress the keys of the map because they can cause some problems and i dont want to take that risk
     std::unordered_map<std::string,Data> res;
     std::ifstream file(m_filename);
     if(!file){
-        std::cout<<"Error creating file "<<m_filename<<std::endl;
+        std::cout<<"Error opening file "<<m_filename<<std::endl;
     }
     size_t size;
     file.read((char*)&size,sizeof(size));
@@ -115,7 +117,12 @@ std::unordered_map<std::string,Data> DataDB::read(Mode m){
         char title[title_size+1];
         file.read(title,title_size);
         title[title_size]='\0';
-        data.title=title;
+        if(m==CompressSearch){
+            data.title=Compress::compress(title);
+        }
+        else{
+            data.title=title;
+        }
 
         size_t content_size;
         file.read((char*)&content_size,sizeof(content_size));
@@ -123,8 +130,12 @@ std::unordered_map<std::string,Data> DataDB::read(Mode m){
         char content[content_size+1];
         file.read(content,content_size);
         content[content_size]='\0';
-        data.content=content;
-
+        if(m==CompressSearch){
+            data.content=Compress::compress(content);
+        }
+        else{
+            data.content=content;
+        }
         size_t link_size;
         file.read((char*)&link_size,sizeof(link_size));
         link_size=be64toh(link_size);
@@ -156,7 +167,12 @@ std::unordered_map<std::string,Data> DataDB::read(Mode m){
             char image_alt[image_alt_size+1];
             file.read(image_alt,image_alt_size);
             image_alt[image_alt_size]='\0';
-            data.images[image_url]=image_alt;
+            if(m==CompressSearch){
+                data.images[image_url]=Compress::compress(image_alt);
+            }
+            else{
+                data.images[image_url]=image_alt;
+            }
         }
         res[data.original_url]=data;
     }

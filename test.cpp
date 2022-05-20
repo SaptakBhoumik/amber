@@ -20,10 +20,10 @@ int main(){
     label:{}
     for(long i=1;i<345;++i){
         DataDB ref=DataDB("/home/saptak/Desktop/projects/amber/dataset/data/db"+std::to_string(i)+".db");
-        data.push_back(ref.read(Search));
+        data.push_back(ref.read(CompressSearch));
     }
     c++;
-    if(c<5){
+    if(c<30){
         goto label;
     }
     std::cout<<"current usage :- "<<get_mem()<<"\n";

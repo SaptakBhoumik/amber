@@ -7,8 +7,9 @@
 #include "../crawler/html.hpp"
 namespace Amber{
 enum Mode{
-    Normal,
-    Search
+    Normal,//load all
+    Search,//dont load the urs because not needed here to save ram
+    CompressSearch//compress while loading to take less memory
 };
 class ReferenceDB{
     std::string m_filename;
