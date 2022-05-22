@@ -8,6 +8,7 @@
 #include <filesystem>
 #include <sys/resource.h>
 #include <unistd.h>
+//Which state has the most people
 long get_mem(){
     rusage u;
     getrusage(RUSAGE_SELF,&u);

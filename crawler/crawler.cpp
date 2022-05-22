@@ -23,7 +23,15 @@ void Crawler::start(){
         goto reset;
         return;
     }
-    m_urls.clear();
+    if((max_num_item-m_result.size())>=m_urls.size()){
+        m_urls.clear();
+    }
+    else{
+        auto x=max_num_item-m_result.size();
+        for(size_t i=0;i<x;++i){
+            m_urls.erase(m_urls.begin());
+        }
+    }
     for (auto& d:data){
         m_result[d.original_url]=d;
         for (auto& u:d.url){
