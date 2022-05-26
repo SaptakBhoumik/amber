@@ -7,8 +7,9 @@
 namespace Amber{
 namespace PageRank{
 std::mutex g_mutex;
-PageRank::PageRank(std::string quary,std::vector<Data> data,double min_similarity,size_t thread_limit){
-    auto tok_quary=Tokenizer::Tokenizer(quary);
+PageRank::PageRank(std::string quary,std::vector<Data> data,Tokenizer::Language lang,double min_similarity,size_t thread_limit){
+    m_lang=lang;
+    auto tok_quary=Tokenizer::Tokenizer(quary,m_lang);
     tok_quary.start();
     m_quary=tok_quary.getParagraph();
     if(m_quary.sentences.size()==0){
@@ -44,7 +45,7 @@ void PageRank::start(){
 void PageRank::create_internal_data(std::vector<Data>& data){
     std::vector<std::thread> threads;
     for(auto& x:data){
-        threads.push_back(std::thread(PageRank::_create_internal_data,x,&m_data));
+        threads.push_back(std::thread(PageRank::_create_internal_data,this,x,&m_data));
         if(threads.size()>=m_thread_limit){
             for(auto& y:threads){
                 y.join();
@@ -56,8 +57,8 @@ void PageRank::create_internal_data(std::vector<Data>& data){
         x.join();
     }
 }
-void PageRank::_create_internal_data(Data data,std::vector<InternalData>* collection){
-    auto tok=Tokenizer::Tokenizer(data.title+"\n"+data.content);
+void PageRank::_create_internal_data(PageRank* self,Data data,std::vector<InternalData>* collection){
+    auto tok=Tokenizer::Tokenizer(data.title+"\n"+data.content,self->m_lang);
     tok.start();
     InternalData temp;
     temp.url=data.url;

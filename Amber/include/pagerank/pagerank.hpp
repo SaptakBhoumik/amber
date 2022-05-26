@@ -18,7 +18,7 @@ namespace PageRank{
     };
     class PageRank{
         public:
-        PageRank(std::string quary,std::vector<Data>,double min_similarity = 0.5,size_t thread_limit=1000);
+        PageRank(std::string quary,std::vector<Data>,Tokenizer::Language lang=Tokenizer::Language::English,double min_similarity = 0.5,size_t thread_limit=1000);
         std::vector<Result> get_result();
         void start();
         private:
@@ -31,9 +31,10 @@ namespace PageRank{
         size_t m_thread_limit;
         std::vector<Result> m_results;
         double m_min_similarity;
+        Tokenizer::Language m_lang;
         std::string get_description(std::vector<Search::Result>&);
         void create_internal_data(std::vector<Data>&);
-        static void _create_internal_data(Data,std::vector<InternalData>*);
+        static void _create_internal_data(PageRank*,Data,std::vector<InternalData>*);
     };
 }
 }
