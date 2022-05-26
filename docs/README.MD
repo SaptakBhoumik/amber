@@ -1,5 +1,10 @@
 # Amber Documentation
 
+<a href="https://github.com/SaptakBhoumik/amber/tree/master/example">
+Click here to check the examples
+</a>
+
+
 ## Tokenizer
 
 The tokenizer breaks down the paragraph into sentences and splits each sentence into words.It will also remove punctuation, special characters and commonly used words for better predictability.

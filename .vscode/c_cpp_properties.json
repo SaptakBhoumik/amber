@@ -3,6 +3,9 @@
         {
             "name": "Linux",
             "defines": [],
+            "includePath": [
+                "${workspaceFolder}"
+            ],
             "compilerPath": "/usr/bin/clang",
             "cStandard": "c11",
             "cppStandard": "c++20",
