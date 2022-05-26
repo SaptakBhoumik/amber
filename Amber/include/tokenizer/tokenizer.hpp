@@ -13,16 +13,16 @@ namespace Tokenizer{
     };
     #include "emotion.hpp"
     struct Sentence{
-        std::string sentance;
+        std::string sentence;
         std::unordered_set<std::string> words;
         Emotion emotion=None;
     };
     struct Paragraph{
         std::vector<Sentence> sentences;
     };
-    class Lexer{
+    class Tokenizer{
         public:
-            Lexer(std::string,Language lang=English);
+            Tokenizer(std::string,Language lang=English);
             Paragraph getParagraph();
             void start();
         private:

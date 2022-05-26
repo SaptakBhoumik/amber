@@ -122,7 +122,7 @@ std::unordered_map<wchar_t,Emotion> english_sentence_stopper={
     {'\r',None},
 };
 std::unordered_map<wchar_t,Emotion> bengali_sentence_stopper={
-    {L'।',None}, //Note this is not | 
+    {L'।',None}, //Note this is not `|` but bengali's version of fullstop
     {'.',None},
     {'!',Exclamation},
     {'?',Question},

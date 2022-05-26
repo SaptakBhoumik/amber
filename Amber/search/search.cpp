@@ -3,7 +3,7 @@
 #include <mutex>
 #include <bits/stdc++.h>
 namespace Amber{
-namespace Searcher{
+namespace Search{
 std::mutex g_mutex;
 double Search::jaccardSimilarity(std::unordered_set<std::string>& quary,std::unordered_set<std::string>& sentence){
     //If the diffrence between the two sets is insiginificant 
@@ -12,7 +12,7 @@ double Search::jaccardSimilarity(std::unordered_set<std::string>& quary,std::uno
     */ 
     auto intersection=get_intersection(quary,sentence);
     auto union_set=get_union(quary,sentence);
-    return (double)intersection.size()/(double)union_set.size();
+    return (double)intersection/(double)union_set;
 }
 double Search::containmentMeasure(std::unordered_set<std::string>& quary,std::unordered_set<std::string>& sentence){
     //If the diffrence between the two sets is insiginificant 
@@ -20,9 +20,9 @@ double Search::containmentMeasure(std::unordered_set<std::string>& quary,std::un
     result=A∩B/A
     */ 
     auto intersection=get_intersection(quary,sentence);
-    return (double)intersection.size()/(double)quary.size();
+    return (double)intersection/(double)quary.size();
 }
-std::unordered_set<std::string> Search::get_union(std::unordered_set<std::string>& A,std::unordered_set<std::string>& B){
+size_t Search::get_union(std::unordered_set<std::string>& A,std::unordered_set<std::string>& B){
     std::unordered_set<std::string> union_set;
     for(auto i:A){
         union_set.insert(i);
@@ -30,16 +30,16 @@ std::unordered_set<std::string> Search::get_union(std::unordered_set<std::string
     for(auto i:B){
         union_set.insert(i);
     }
-    return union_set;
+    return union_set.size();
 }
-std::unordered_set<std::string> Search::get_intersection(std::unordered_set<std::string>& A,std::unordered_set<std::string>& B){
+size_t Search::get_intersection(std::unordered_set<std::string>& A,std::unordered_set<std::string>& B){
     std::unordered_set<std::string> intersection;
     for(auto i:A){
         if(B.contains(i)){
             intersection.insert(i);
         }
     }
-    return intersection;
+    return intersection.size();
 }
 Search::Search(Tokenizer::Paragraph query, Tokenizer::Paragraph document,double min_similarity,size_t thread_limit){
     for(auto& x:query.sentences){
@@ -55,6 +55,9 @@ std::vector<Result> Search::get_result(){
     return m_results;
 }
 void Search::start(){
+    if(m_query.size()==0||m_document.sentences.size()==0){
+        return;
+    }
     std::vector<std::thread> threads;
     std::vector<Result> res;
     for(auto& x:m_document.sentences){
@@ -96,6 +99,10 @@ void Search::_get_res(Search* self,std::vector<Result>* res,Tokenizer::Sentence 
     }
     else{
         simmilarity=self->containmentMeasure(self->m_query,sentence.words);
+    }
+    if(sentence.emotion==Question){
+        //We prefer the answer more
+        simmilarity*=0.9;
     }
     if(simmilarity>=self->m_min_similarity){
         Result result;

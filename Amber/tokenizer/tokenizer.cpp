@@ -11,11 +11,11 @@
 
 namespace Amber{
 namespace Tokenizer{
-    Lexer::Lexer(std::string text,Language lang){
+    Tokenizer::Tokenizer(std::string text,Language lang){
         m_text = text;
         m_lang = lang;
     }
-    void Lexer::start(){
+    void Tokenizer::start(){
         if(m_text.size() > 0){
             if(!m_sentence_stopper_map[m_lang].contains(m_text.back())){
                 m_text.push_back('\n');
@@ -23,10 +23,10 @@ namespace Tokenizer{
             tokenize();
         }
     }
-    Paragraph Lexer::getParagraph(){
+    Paragraph Tokenizer::getParagraph(){
         return m_paragraphs;
     }
-    void Lexer::tokenize(){
+    void Tokenizer::tokenize(){
         std::string temp_sentence = "";//the currrent sentence
         std::string temp_word = "";//the current word
         std::unordered_set<std::string> temp_sentence_words;
@@ -55,7 +55,7 @@ namespace Tokenizer{
                 auto emotion=stop_sentence[curr_item];
                 Sentence temp;
                 if(temp_sentence_words.size() > 0){
-                    temp.sentance = temp_sentence;
+                    temp.sentence = temp_sentence;
                     temp.words = temp_sentence_words;
                     temp.emotion = emotion;
                     m_paragraphs.sentences.push_back(temp);
@@ -75,7 +75,7 @@ namespace Tokenizer{
         }
         Sentence temp;
         if(temp_sentence_words.size() > 0){
-            temp.sentance = temp_sentence;
+            temp.sentence = temp_sentence;
             temp.words = temp_sentence_words;
             temp.emotion = emotion;
             m_paragraphs.sentences.push_back(temp);
@@ -83,7 +83,7 @@ namespace Tokenizer{
             temp_sentence_words.clear();
         }
     }
-    wchar_t Lexer::peek(size_t i){
+    wchar_t Tokenizer::peek(size_t i){
         if(i<=m_text.size()-1){
             return m_text[i];
         }

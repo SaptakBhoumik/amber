@@ -2,7 +2,7 @@
 #define __SEARCH_HPP__
 #include "../tokenizer/tokenizer.hpp"
 namespace Amber{
-namespace Searcher{
+namespace Search{
     struct Result{
         Tokenizer::Sentence sentence;
         double score;
@@ -22,8 +22,8 @@ namespace Searcher{
 
         double jaccardSimilarity(std::unordered_set<std::string>&,std::unordered_set<std::string>&);
         double containmentMeasure(std::unordered_set<std::string>& quary,std::unordered_set<std::string>& sentence);
-        std::unordered_set<std::string> get_union(std::unordered_set<std::string>&,std::unordered_set<std::string>&);
-        std::unordered_set<std::string> get_intersection(std::unordered_set<std::string>&,std::unordered_set<std::string>&);
+        size_t get_union(std::unordered_set<std::string>&,std::unordered_set<std::string>&);
+        size_t get_intersection(std::unordered_set<std::string>&,std::unordered_set<std::string>&);
         static void _get_res(Search*,std::vector<Result>*,Tokenizer::Sentence);
     };
 }
