@@ -26,7 +26,7 @@ Examples are available in the [example folder](https://github.com/SaptakBhoumik/
 
 ## Future plans
 
-- [ ] Add support for other languages
+- [ ] Add support for other human languages and programming languages
 - [ ] Improve the search algorithm
 - [ ] Make it faster
 
@@ -60,6 +60,10 @@ Examples are available in the [example folder](https://github.com/SaptakBhoumik/
 - Compile an example
 
     ``clang++ example/pagerank.cpp  -lamber -pthread std=c++20``    
+
+## Currently supported languages
+- Bengali
+- English
 
 ## Have questions?
 
