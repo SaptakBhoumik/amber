@@ -41,21 +41,21 @@ Examples are available in the [example folder](https://github.com/SaptakBhoumik/
 
 ## Build it
 
-    - Clone the repo
+- Clone the repo
 
-        ``git clone https://github.com/SaptakBhoumik/amber.git``
+    ``git clone https://github.com/SaptakBhoumik/amber.git``
 
-    - Go to the folder
+- Go to the folder
 
-        ``cd amber``
+    ``cd amber``
 
-    - Build it
+- Build it
 
-        ``python3 make.py release`` 
+    ``python3 make.py release`` 
 
-    - Install it
+- Install it
 
-        ``python3 make.py install``
+    ``python3 make.py install``
 
 ## Have questions?
 
