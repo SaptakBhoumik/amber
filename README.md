@@ -57,6 +57,9 @@ Examples are available in the [example folder](https://github.com/SaptakBhoumik/
 
     ``python3 make.py install``
 
+- Compile an example
+    ``clang++ example/pagerank.cpp  -lamber -pthread std=c++20``    
+
 ## Have questions?
 
 Cool, you can contact me via mail.
