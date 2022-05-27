@@ -1,3 +1,5 @@
 test.cpp
 *.o
 *.out
+*.log
+buildir

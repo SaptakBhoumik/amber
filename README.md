@@ -32,12 +32,37 @@ Examples are available in the [example folder](https://github.com/SaptakBhoumik/
 
 ## Implementation Language
 
-- C++
+- C++20
+
+## Requirements to build it
+ 
+ - [Clang](https://clang.llvm.org/)
+ - [Python3](https://www.python.org/downloads/)
 
 ## Build it
-    TODO:Add it
+
+    - Clone the repo
+
     ```bash
-    git clone
+    git clone https://github.com/SaptakBhoumik/amber.git
+    ```
+
+    - Go to the folder
+
+    ```bash
+    cd amber
+    ```
+
+    - Build it
+
+    ```bash
+    python3 make.py release
+    ```
+
+    - Install it
+
+    ```bash
+    python3 make.py install
     ```
 
 ## Have questions?
