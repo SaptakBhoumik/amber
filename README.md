@@ -43,27 +43,19 @@ Examples are available in the [example folder](https://github.com/SaptakBhoumik/
 
     - Clone the repo
 
-    ```bash
-    git clone https://github.com/SaptakBhoumik/amber.git
-    ```
+        ``git clone https://github.com/SaptakBhoumik/amber.git``
 
     - Go to the folder
 
-    ```bash
-    cd amber
-    ```
+        ``cd amber``
 
     - Build it
 
-    ```bash
-    python3 make.py release
-    ```
+        ``python3 make.py release`` 
 
     - Install it
 
-    ```bash
-    python3 make.py install
-    ```
+        ``python3 make.py install``
 
 ## Have questions?
 
